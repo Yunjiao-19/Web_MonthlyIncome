@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proj 1</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <style>
+        .gridlines .domain {
+          display: none;
+        }
+    
+        .gridlines line {
+          stroke: #dddddd;
+        }
+
+        .markup {
+            font-family: monospace;
+        }
+
+        span {
+            margin-right: 1em;
+        }
+
+        .legends {
+            font-family: monospace;
+            font-size: 1.5em;
+            width: 1000px;
+        }
+
+        svg {
+            margin-top: 20px;
+        }
+
+        .viz {
+            margin: 40px 0 80px 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .readable {
+            width: 500px;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        }
+
+        p {
+            margin-bottom: 100px;
+            font-size: 1.2em;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="readable">Red or Green: Average Monthly Income and Forest Surface Area, Romania, 1991-2019</h1>
+    <h2 class="readable">Marc Liu, Erika Hauschild, Yunjiao Chai</h2>
+    <div id="marc" class="viz">
+        <div id="title-income-area" class="legends">Average Net Monthly Income (lei/mo) and Forest Surface Area (thousand hectare)</div>
+        <svg id="svg1" width=1000 height=750 style="overflow: visible;"></svg>
+        <script>
+            let ro = d3.formatLocale({
+                "decimal": ".",
+                "thousands": ",",
+                "grouping": [3],
+                "currency": ["", " lei"]
+            })
+
+            let svg1 = d3.select('#svg1')
+            let svgWidth = svg1.attr('width')
+            let svgHeight = svg1.attr('height')
+            let padding1 = {top: 20, right: 50, bottom: 30, left: 40}
+            let chartWidth1 = svgWidth - padding1.left - padding1.right
+            let chartHeight1 = svgHeight - padding1.top - padding1.bottom
+
+            let chartArea1 = svg1.append('g').attr('id', 'chartArea1')
+                                             .attr('transform', `translate(${padding1.left + 15}, ${padding1.top})`)
+            let annotations1 = svg1.append('g').attr('id', 'annotations1')
+            
+            d3.csv('datasets/income_area.csv', d3.autoType).then(data => {
+                let timeParser = d3.timeParse('%Y')
+                
+                data.forEach(d => {
+                    d.Year = timeParser(d.Year)
+                })
+
+                let yearExtent = d3.extent(data, d => d.Year)
+                let yearScale = d3.scaleTime().domain(yearExtent).range([0, chartWidth1])
+
+                let incomeExtent = d3.extent(data, d => d.adjusted_earnings)
+                let incomeScale = d3.scaleLinear().domain(incomeExtent).range([chartHeight1, 0])
+
+                let areaExtent = d3.extent(data, d => d['forest_area_kha'])
+                let areaAreaScale = d3.scaleLinear().domain(areaExtent).range([5, 20])
+                let interpolator = d3.interpolateRgb.gamma(2.2)('#B3E7AB', '#007737')
+                let areaColorScale = d3.scaleSequential(interpolator).domain(areaExtent)
+
+                let xAxis = d3.axisBottom(yearScale).ticks(data.length)
+                let xGridlines = d3.axisBottom(yearScale).ticks(data.length).tickFormat('').tickSize(-chartHeight1-10)
+
+                let yAxis = d3.axisLeft(incomeScale).tickFormat(ro.format('$.0s'))
+                let yGridlines = d3.axisLeft(incomeScale).tickFormat('').tickSize(-chartWidth1-15)
+
+                annotations1.append('g')
+                            .attr('class', 'x axis')
+                            .attr('transform', `translate(${padding1.left + 15}, ${padding1.top + chartHeight1 + 10})`)
+                            .call(xAxis)
+                annotations1.append('g')
+                            .attr('class', 'x gridlines')
+                            .attr('transform', `translate(${padding1.left + 15}, ${padding1.top + chartHeight1 + 10})`)
+                            .call(xGridlines)
+                annotations1.append('g')
+                            .attr('class', 'y axis')
+                            .attr('transform', `translate(${padding1.left}, ${padding1.top})`)
+                            .call(yAxis)
+                annotations1.append('g')
+                            .attr('class', 'y gridlines')
+                            .attr('transform', `translate(${padding1.left}, ${padding1.top})`)
+                            .call(yGridlines)
+
+                chartArea1.selectAll('circle')
+                         .data(data)
+                         .join('circle')
+                         .attr('cx', d => yearScale(d.Year))
+                         .attr('cy', d => incomeScale(d.adjusted_earnings))
+                         .attr('r', d => areaAreaScale(d['forest_area_kha']))
+                         .attr('fill', d => areaColorScale(d['forest_area_kha']))
+                chartArea1.raise()
+
+                // points of interest
+                annotations1.append('text')
+                           .attr('class', 'markup')
+                           .attr('x', yearScale(yearExtent[0]))
+                           .attr('y', incomeScale(incomeExtent[0]))
+                           .attr('transform', `translate(${padding1.left + 15}, -20)`)
+                           .text(`${d3.format(',')(areaExtent[0])} thousand hectares`)
+                annotations1.append('text')
+                           .attr('class', 'markup')
+                           .attr('x', yearScale(yearExtent[0]))
+                           .attr('y', incomeScale(incomeExtent[0]) - 15)
+                           .attr('transform', `translate(${padding1.left + 15}, -20)`)
+                           .text(`${d3.format(',')(incomeExtent[0])} lei/mo`)
+                annotations1.append('line')
+                           .attr('x1', yearScale(yearExtent[0]))
+                           .attr('x2', yearScale(yearExtent[0]))
+                           .attr('y1', incomeScale(incomeExtent[0]))
+                           .attr('y2', incomeScale(incomeExtent[0]) - 15)
+                           .style('stroke', 'black')
+                           .style('stroke-width', 2)
+                           .attr('transform', `translate(${padding1.left + 15}, 0)`)
+
+                annotations1.append('text')
+                           .attr('class', 'markup')
+                           .attr('x', yearScale(yearExtent[1]))
+                           .attr('y', incomeScale(incomeExtent[1]) + 15)
+                           .attr('transform', `translate(${padding1.left - 30}, ${padding1.top})`)
+                           .attr('text-anchor', 'end')
+                           .text(`${d3.format(',')(areaExtent[1])} thousand hectares`)
+                annotations1.append('text')
+                           .attr('class', 'markup')
+                           .attr('x', yearScale(yearExtent[1]))
+                           .attr('y', incomeScale(incomeExtent[1]))
+                           .attr('transform', `translate(${padding1.left - 30}, ${padding1.top})`)
+                           .attr('text-anchor', 'end')
+                           .text(`${d3.format(',')(incomeExtent[1])} lei/mo`)
+                annotations1.append('line')
+                           .attr('x1', yearScale(yearExtent[1]))
+                           .attr('x2', yearScale(yearExtent[1]) - 15)
+                           .attr('y1', incomeScale(incomeExtent[1]))
+                           .attr('y2', incomeScale(incomeExtent[1]))
+                           .style('stroke', 'black')
+                           .style('stroke-width', 2)
+                           .attr('transform', `translate(${padding1.left - 10}, ${padding1.top})`)
+            })
+        </script>
+    </div>
+    <div id="marc-and-yunjiao-pos" class="viz">
+        <div id="legend-pos" class="legends">Counties with Most Positive Change in Forest Coverage: </div>
+        <svg id="linechart" height="750" width="1000" ></svg>
+        <script>
+            const svg=d3.select("svg#linechart");
+            const width=svg.attr("width");
+            const height=svg.attr("height");
+            const margin={top:10,right:50,bottom:50,left:50};
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+
+            let annotations = svg.append("g").attr("id","annotations");
+            let chartArea = svg.append("g").attr("id","points")
+                  .attr("transform", `translate(${margin.left - 12},${margin.top})`);
+
+            
+            //data          
+            d3.csv("datasets/romania_forest_positive.csv",d3.autoType).then((data)=>{ 
+
+                //Scale
+                const yearExtent=d3.extent(data,d=>d['Year']);
+                const yearScale=d3.scaleLinear().domain(yearExtent).range([0,chartWidth]);
+                const coverageExtent=d3.extent(data,d=>d['coverage']);
+                const coverageScale=d3.scaleLinear().domain(coverageExtent).range([chartHeight,0]);
+                
+                //X axis
+                let bottomAxis = d3.axisBottom(yearScale)
+                    .tickFormat(d3.format("~f"))
+                    .ticks(29)
+                annotations.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform","translate("+(margin.left + 20)+","+(chartHeight+margin.top+10)+")")
+                        .call(bottomAxis);
+
+                //Y axis
+                let leftAxis = d3.axisLeft(coverageScale).tickFormat(d3.format(",.1%"))
+                annotations.append("g")
+                    .attr("class", "y axis")
+                    .attr("transform","translate("+(margin.left+5)+","+margin.top+")")
+                    .call(leftAxis)
+
+                let lineGen = d3.line()
+                                .x( d => yearScale(d['Year']+1) )
+                                .y( d => coverageScale(d['coverage']) )
+                                .curve(d3.curveMonotoneX); 
+                
+                // counties list
+                let countiesList = [... new Set(d3.map(data, d => d['Region']))]
+                let countyNameColor = [
+                    {name: '', color: '#00AC4F'},
+                    {name: '', color: '#0295FF'},
+                    {name: '', color: '#BD6347'}
+                ]
+
+                // lines and points of interest
+                countiesList.forEach ((county, index) => {
+                    // lines
+                    let countyData = data.filter( d => d['Region'] === county) // get county data
+                    countyNameColor[index]['name'] = county // colors eheh
+
+                    chartArea.append("path")
+                            .datum(countyData)
+                            .attr("class", "line")
+                            .attr("fill", "none")
+                            .attr("stroke", countyNameColor[index]['color'])
+                            .attr("stroke-width", 2)
+                            .attr("d", lineGen);
+                    chartArea.append('circle')
+                             .attr('cx', yearScale(2019))
+                             .attr('cy', coverageScale(countyData[countyData.length-1]['coverage']))
+                             .attr('r', 5)
+                             .attr('fill', countyNameColor[index]['color'])
+                             .attr('transform', `translate(33, 0)`)
+                    
+                    // points of interest
+                    function textGroupYOffset(pos) {
+                        // helper function for positioning eheh
+                        if (pos < 300) {
+                            return pos + 30
+                        } else {
+                            return pos - 48
+                        }
+                    }
+                    let textGroup = annotations.append('g')
+                                               .attr('id', `${county}-text-group`)
+                                               .attr('class', 'markup')
+                                               .attr('fill', countyNameColor[index]['color'])
+                                               .attr('transform', `translate(${chartWidth + margin.left + 20}, ${textGroupYOffset(coverageScale(countyData[countyData.length-1]['coverage']))})`)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .text(county)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .attr('transform', 'translate(0, 15)')
+                             .text(`Forest Area (2019): ${d3.format(".2f")(countyData[countyData.length-1]['forest_area_kha'])} thousand hectares`)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .attr('transform', 'translate(0, 30)')
+                             .attr('font-weight', 'bold')
+                             .text(`Forest Coverage (2019): ${d3.format(".2%")(countyData[countyData.length-1]['coverage'])}`)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .attr('transform', 'translate(0, 45)')
+                             .text(`Change (1991-2019): +${countyData[0]['delta']}`)
+                })
+
+                //title and legend
+                let legendMost = d3.select('#legend-pos')
+                countyNameColor.forEach( d => {
+                    legendMost.append('span')
+                              .style('color', d.color)
+                              .text(d.name)
+                })
+            })
+        </script>
+    </div>
+    <div id="marc-and-yunjiao-neg" class="viz">
+        <div id="legend-neg" class="legends">Counties with Most Negative Change in Forest Coverage: </div>
+        <svg id="linechart2" height="750" width="1000"></svg>
+        <script>
+            const svg2=d3.select("svg#linechart2");
+            const width2=svg2.attr("width");
+            const height2=svg2.attr("height");
+            const margin2={top:10,right:50,bottom:50,left:50};
+            const chartWidth2 = width2 - margin2.left - margin2.right;
+            const chartHeight2 = height2 - margin2.top - margin2.bottom;
+
+            let annotations2 = svg2.append("g").attr("id","annotations");
+            let chartArea2 = svg2.append("g").attr("id","points")
+                  .attr("transform","translate(40,"+margin2.top+")");
+                  
+            d3.csv("datasets/romania_forest_negative.csv",d3.autoType).then((data)=>{
+
+                //Scale
+                const yearExtent=d3.extent(data,d=>d['Year']);
+                const yearScale=d3.scaleLinear().domain(yearExtent).range([0,chartWidth2]);
+                const coverageExtent=d3.extent(data,d=>d['coverage']);
+                const coverageScale=d3.scaleLinear().domain(coverageExtent).range([chartHeight2,0]);
+            
+                //X axis
+                let bottomAxis = d3.axisBottom(yearScale)
+                    .tickFormat(d3.format("~f"))
+                    .ticks(29)
+                annotations2.append("g")
+                        .attr("class", "x axis")
+                        .attr("transform","translate("+(margin2.left+20)+","+(chartHeight2+margin2.top+10)+")")
+                        .call(bottomAxis);
+
+                 //Y axis
+                let leftAxis = d3.axisLeft(coverageScale).tickFormat(d3.format(",.1%")).ticks(10)
+                annotations2.append("g")
+                    .attr("class", "y axis")
+                    .attr("transform","translate("+(margin2.left+5)+","+margin2.top+")")
+                    .call(leftAxis)
+
+                let lineGen = d3.line()
+                                .x( d => yearScale(d['Year']+1) )
+                                .y( d => coverageScale(d['coverage']) )
+                                .curve(d3.curveMonotoneX); 
+                
+                // counties list
+                let countiesList = [... new Set(d3.map(data, d => d['Region']))]
+                let countyNameColor = [
+                    {name: '', color: '#F16259'},
+                    {name: '', color: '#A483B3'},
+                    {name: '', color: '#595959'}
+                ]
+
+                // lines and points of interest
+                countiesList.forEach ((county, index) => {
+                    // lines
+                    let countyData = data.filter( d => d['Region'] === county)
+                    countyNameColor[index]['name'] = county
+                    chartArea2.append("path")
+                            .datum(countyData)
+                            .attr("class", "line")
+                            .attr("fill", "none")
+                            .attr("stroke", countyNameColor[index]['color'])
+                            .attr("stroke-width", 2)
+                            .attr("d", lineGen);
+                    chartArea2.append('circle')
+                             .attr('cx', yearScale(2019))
+                             .attr('cy', coverageScale(countyData[countyData.length-1]['coverage']))
+                             .attr('r', 5)
+                             .attr('fill', countyNameColor[index]['color'])
+                             .attr('transform', `translate(30, 0)`)
+                    
+                    // points of interest
+                    function textGroupYOffset(pos) {
+                        // helper function for positioning eheh
+                        if (pos < 300) {
+                            return pos + 30
+                        } else {
+                            return pos - 48
+                        }
+                    }
+                    let textGroup = annotations2.append('g')
+                                               .attr('id', `${county}-text-group`)
+                                               .attr('class', 'markup')
+                                               .attr('fill', countyNameColor[index]['color'])
+                                               .attr('transform', `translate(${chartWidth + margin.left + 20}, ${textGroupYOffset(coverageScale(countyData[countyData.length-1]['coverage']))})`)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .text(county)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .attr('transform', 'translate(0, 15)')
+                             .text(`Forest Area (2019): ${d3.format(".2f")(countyData[countyData.length-1]['forest_area_kha'])} thousand hectares`)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .attr('transform', 'translate(0, 30)')
+                             .attr('font-weight', 'bold')
+                             .text(`Forest Coverage (2019): ${d3.format(".2%")(countyData[countyData.length-1]['coverage'])}`)
+                    textGroup.append('text')
+                             .attr('text-anchor', 'end')
+                             .attr('transform', 'translate(0, 45)')
+                             .text(`Change (1991-2019): ${countyData[0]['delta']}`)
+                })
+
+                // title and legend
+                let legendMost = d3.select('#legend-neg')
+                countyNameColor.forEach( d => {
+                    legendMost.append('span')
+                              .style('color', d.color)
+                              .text(d.name)
+                })
+            });
+        </script>
+    </div>
+</body>
+</html>

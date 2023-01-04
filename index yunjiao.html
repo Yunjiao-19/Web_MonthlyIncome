@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <title>Project1 Forest</title>
+</head>
+<body>
+    <div class="Visualization">
+        <svg id="linechart" height="500" width="650" ></svg>
+
+        <script>
+            const svg=d3.select("svg#linechart");
+            const width=svg.attr("width");
+            const height=svg.attr("height");
+            const margin={top:50,right:50,bottom:50,left:50};
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+
+  let annotations = svg.append("g").attr("id","annotations");
+  let chartArea = svg.append("g").attr("id","points")
+                  .attr("transform","translate("+margin.left+","+margin.top+")");
+
+                  //data
+                  
+                  d3.csv("datasets/forest_surfaces_most.csv",d3.autoType)
+                  .then((data)=>{
+
+
+                    //percent value to 100
+                    data.forEach( d => {
+                        d['coverage'] =  Number(d['coverage']);
+                        d['year']=Number(d["Year"]);
+
+                    })
+
+
+                    //less 3 Bucuresti,Calarasi,Teleorman
+                    //most 3 Suceava, Caras-Severin, Valcea
+                    var dataS=data.filter((d)=>{
+                        return d["Region"]==='Suceava';
+
+                    })
+                    var dataC=data.filter((d)=>{
+                        return d["Region"]==='Caras-Severin';
+
+                    })
+                    var dataV=data.filter((d)=>{
+                        return d["Region"]==='Valcea';
+
+                    })
+
+
+
+                    //Scale
+                    const yearExtent=d3.extent(data,d=>d['Year']);
+                    const yearScale=d3.scaleLinear().domain(yearExtent).range([0,chartWidth]);
+                    const coverageExtent=d3.extent(data,d=>d['coverage']);
+                    const coverageScale=d3.scaleLinear().domain(coverageExtent).range([chartHeight,0]);
+                    
+                    let colorScale = d3.scaleLinear().domain([1,6])
+                    .range([d3.rgb("#a008f2"), d3.rgb("#f9d6ec")])
+                    .interpolate(d3.interpolateHcl);
+
+
+                    
+                    //X axis
+                    let bottomAxis = d3.axisBottom(yearScale)
+                     .tickFormat(d3.format("~f"));   
+                    
+                        annotations.append("g")
+                            .attr("class", "x axis")
+                            .attr("transform","translate("+(margin.left+20)+","+(chartHeight+margin.top+10)+")")
+                            .call(bottomAxis);
+
+                    //Y axis
+                    let leftAxis = d3.axisLeft(coverageScale).tickFormat(d3.format(",.1%"))
+
+                    annotations.append("g")
+                        .attr("class", "y axis")
+                        .attr("transform","translate("+(margin.left+5)+","+margin.top+")")
+                        .call(leftAxis)
+
+                    var lineGen = d3.line()
+                  .x( d => yearScale(d['year']+1) )
+                  .y( d => coverageScale(d['coverage']) )
+                  .curve(d3.curveMonotoneX); 
+
+                  chartArea.append("path")
+                    .datum(dataS)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "#DEB887")
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGen);
+
+                    chartArea.append("path")
+                    .datum(dataC)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "#66CDAA")
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGen);
+                  
+                    chartArea.append("path")
+                    .datum(dataV)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "	#ADD8E6")
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGen);
+                  
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  });
+
+
+        </script>
+    </div>
+
+    <div class="Visualization2">
+        <svg id="linechart2" height="500" width="650" ></svg>
+
+        <script>
+            const svg2=d3.select("svg#linechart2");
+            const width2=svg2.attr("width");
+            const height2=svg2.attr("height");
+            const margin2={top:50,right:50,bottom:50,left:50};
+            const chartWidth2 = width2 - margin2.left - margin2.right;
+            const chartHeight2 = height2 - margin2.top - margin2.bottom;
+
+  let annotations2 = svg2.append("g").attr("id","annotations");
+  let chartArea2 = svg2.append("g").attr("id","points")
+                  .attr("transform","translate("+margin2.left+","+margin2.top+")");
+
+                  //data
+                  
+                  d3.csv("datasets/forest_surfaces_least.csv",d3.autoType)
+                  .then((data)=>{
+
+
+                    //percent value to 100
+                    data.forEach( d => {
+                        d['coverage'] =  Number(d['coverage']);
+                        d['year']=Number(d["Year"]);
+
+                    })
+
+
+                    //less 3 Bucuresti,Calarasi,Teleorman
+                    //most 3 Suceava, Caras-Severin, Valcea
+                    var dataS=data.filter((d)=>{
+                        return d["Region"]==='Calarasi';
+
+                    })
+                    var dataC=data.filter((d)=>{
+                        return d["Region"]==='Braila';
+
+                    })
+                    var dataV=data.filter((d)=>{
+                        return d["Region"]==='Constanta';
+
+                    })
+
+
+
+                    //Scale
+                    const yearExtent=d3.extent(data,d=>d['Year']);
+                    const yearScale=d3.scaleLinear().domain(yearExtent).range([0,chartWidth2]);
+                    const coverageExtent=d3.extent(data,d=>d['coverage']);
+                    const coverageScale=d3.scaleLinear().domain(coverageExtent).range([chartHeight2,0]);
+                    
+                    let colorScale = d3.scaleLinear().domain([1,6])
+                    .range([d3.rgb("#a008f2"), d3.rgb("#f9d6ec")])
+                    .interpolate(d3.interpolateHcl);
+
+
+                    
+                    //X axis
+                    let bottomAxis = d3.axisBottom(yearScale)
+                     .tickFormat(d3.format("~f"));   
+                    
+                        annotations2.append("g")
+                            .attr("class", "x axis")
+                            .attr("transform","translate("+(margin.left+20)+","+(chartHeight+margin.top+10)+")")
+                            .call(bottomAxis);
+
+                    //Y axis
+                    let leftAxis = d3.axisLeft(coverageScale).tickFormat(d3.format(",.1%")).ticks(10)
+
+                    annotations2.append("g")
+                        .attr("class", "y axis")
+                        .attr("transform","translate("+(margin.left+5)+","+margin.top+")")
+                        .call(leftAxis)
+
+                    var lineGen = d3.line()
+                  .x( d => yearScale(d['year']+1) )
+                  .y( d => coverageScale(d['coverage']) )
+                  .curve(d3.curveMonotoneX); 
+
+                  chartArea2.append("path")
+                    .datum(dataS)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "#F08080")
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGen);
+
+                    chartArea2.append("path")
+                    .datum(dataC)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "#33FFF6 ")
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGen);
+                  
+                    chartArea2.append("path")
+                    .datum(dataV)
+                    .attr("class", "line")
+                    .attr("fill", "none")
+                    .attr("stroke", "steelblue")
+                    .attr("stroke-width", 2)
+                    .attr("d", lineGen);
+                  
+
+
+
+
+
+
+
+
+
+
+
+
+
+                  });
+
+
+        </script>
+    </div>
+
+
+
+    
+</body>
+</html>
